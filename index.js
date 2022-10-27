@@ -60,7 +60,6 @@ app.use('/ex06', require('./routes/EX06Router'));
 app.use('/ex07', require('./routes/EX07Router'));
 app.use('/ex08', require('./routes/EX08Router'));
 app.use('/ex09', require('./routes/EX09Router'));
-app.use('/ex10', require('./routes/EX10Router'));
 
 //=================================================================================
 // trang nhap du lieu: input

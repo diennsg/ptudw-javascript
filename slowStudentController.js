@@ -1,4 +1,4 @@
-let sinhviens = require('./sinhviens.js');
+let sinhviens = require('./Students.js');
 let slowRandom = require('./slowRandom.js')
 let controller = {};
 // exports ra nhieu ket qua: generate / average / normalize

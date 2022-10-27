@@ -2,13 +2,13 @@ let express = require('express');
 let router = express.Router();
 
 router.get('/', (req, res)=>{
-    let sinhviens = require('./sinhviens.js');
+    let sinhviens = require('./Students.js');
     let slowrandom = require('./slowRandom.js');
-    let slowcontroller = require('./sinhvienController');
+    let slowcontroller = require('./SlowStudentController');
     // Promise
     slowrandom(0, 10).then(x => console.log(x));
 
-    // ham anomymus
+    // ham ?
     (async function(){
         let x = await slowrandom(0,10);
         console.log(x);
