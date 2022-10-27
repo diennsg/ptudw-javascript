@@ -1,0 +1,217 @@
+===================================================================================
+const express = require('express');
+const app = express();
+
+// JSON.stringify(data)
+app.use(express.json());
+app.use(express.urlencoded({extended: false}));
+
+// thay $ == [Op.or: ]
+const Sequelize = require('sequelize');
+const Op = Sequelize.Op;
+
+// static: /public: (.html)
+app.use(express.static(__dirname  + '/public'));
+
+// dieu huong routes
+app.use('/', require('./routes/indexRouter'));
+app.use('/products', require('./routes/productRouter'));
+//app.use('/', require('./routes/listRouter'));
+
+// express-handlebars
+const expHbs = require('express-handlebars')
+var hbs  = expHbs.create({
+    extname: 'hbs',
+    defaultLayout: 'layout',
+    layoutsDir: __dirname + '/views/layouts',
+    partialsDir: __dirname + '/views/partials',
+    //handlebars: allowInsecurePrototypeAccess(Handlebars),
+    runtimeOptions: {
+        allowProtoPropertiesByDefault: true,
+        allowProtoMethodsByDefault: true,
+    }   
+});
+app.engine('hbs', hbs.engine);
+app.set('view engine', 'hbs');
+app.set('views', './views');
+
+// sync
+app.get('/sync', (req, res)=>{
+    let models = require('./models');
+    models.sequelize.sync({force: true})
+    .then(()=>{
+        res.send('ĐÃ TẠO ĐƯỢC TABLES TRONG POSTGRES !')
+    });
+});
+
+
+
+// =============================================================
+// trang chu aroma
+app.get('/input', (req, res)=>{
+    res.render('index');
+});
+// =============================================================
+app.set('port', process.env.PORT || 5000);
+app.listen(app.get('port'), ()=>{
+    console.log(`server is running on port ${app.get('port')}`);
+});
+
+
+===================================================================================
+let express = require('express');
+let router = express.Router();
+
+router.get('/', (req, res, next)=>{
+    let categoryController = require('../controllers/categoryController')
+    categoryController 
+        .getAll()
+        .then(data1 => {
+            res.locals.categories = data1;
+            let brandController = require('../controllers/brandController');
+            return brandController.getAll();
+        })
+        .then(data2 => {
+            res.locals.Brands = data2;
+            let colorController = require('../controllers/colorController');
+            return colorController.getAll();
+        })
+        .then(data3 => {
+            res.locals.Colors = data3;
+            let productController = require('../controllers/productController');
+            return productController.getAll();
+        })
+        .then(data4 => {
+            res.locals.Products = data4;    
+            res.render('Category');
+        })
+        .catch(err => next(err));
+});
+
+router.get('/:id', (req, res, next) => {
+    let productController = require('../controllers/productController');
+    productController
+        .getById(req.params.id)
+        .then(data => {
+            res.locals.Product = data;
+            res.render('single_product');
+        })
+        .catch(err => next(err));
+});
+
+module.exports = router;
+
+===================================================================================
+let controller = {};
+let models = require('../models');
+let Product = models.Product;
+
+controller.getTrendingProducts = function(){
+    return new Promise((resolve, reject)=>{
+        // table: 'Products'
+        Product
+            .findAll({
+                order:[
+                    ['overallReview', 'DESC'],
+                ],
+                limit: 8,
+                // Category is foreignKey
+                include: [{model: models.Category}],
+                attributes: ['id', 'name', 'imagepath', 'price'],
+            })
+            .then(data => resolve(data))
+            .catch(err => reject(new Error(err)))
+    })
+}
+
+controller.getAll = function(){
+    return new Promise((resolve, reject)=>{
+        Product
+            .findAll({
+                include: [{model: models.Category}],
+                attributes: ['id', 'name', 'imagepath', 'price'],
+            })
+            .then(data => resolve(data))
+            .catch(err => reject(new Error(err)))
+    })
+}
+
+controller.getById = (id) => {
+    // resolve <=> return
+    return new Promise((resolve, reject) => {
+        let product;
+        Product
+            .findOne({
+                where: {id: id},
+                include: [{model: models.Category}],
+            })
+
+            .then(result => {
+                product = result;
+                return models.productSpecification.findAll({
+                    where: {id: id},
+                    include: [{model: models.Category}],
+                })
+            })
+            .then(productSpecification => {
+                product.productSpecification = productSpecification;
+                resolve(product);
+            })
+            .catch(err => reject(new Error(err)))
+    });
+};
+
+module.exports = controller;
+
+===================================================================================
+layout.hbs
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Aroma Shop - Home</title>
+	<link rel="icon" href="/img/Fevicon.png" type="image/png">
+  <link rel="stylesheet" href="/vendors/bootstrap/bootstrap.min.css">
+  <link rel="stylesheet" href="/vendors/fontawesome/css/all.min.css">
+	<link rel="stylesheet" href="/vendors/themify-icons/themify-icons.css">
+  <link rel="stylesheet" href="/vendors/nice-select/nice-select.css">
+  <link rel="stylesheet" href="/vendors/owl-carousel/owl.theme.default.min.css">
+  <link rel="stylesheet" href="/views/">
+
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <!--================ Start Header Menu Area =================-->
+    {{>header}}
+	<!--================ End Header Menu Area =================-->
+
+<!--================ Start Main Menu Area =================-->
+    {{{body}}}
+  <!--================ End Main Menu Area =================-->
+
+  <!--================ Start footer Area  =================-->	
+    {{>footer}}
+	<!--================ End footer Area  =================-->
+
+
+
+  <script src="/vendors/jquery/jquery-3.2.1.min.js"></script>
+  <script src="/vendors/bootstrap/bootstrap.bundle.min.js"></script>
+  <script src="/vendors/skrollr.min.js"></script>
+  <script src="/vendors/owl-carousel/owl.carousel.min.js"></script>
+  <script src="/vendors/nice-select/jquery.nice-select.min.js"></script>
+  <script src="/vendors/jquery.ajaxchimp.min.js"></script>
+  <script src="/vendors/mail-script.js"></script>
+  <script src="/js/main.js"></script>
+</body>
+</html>
+
+===================================================================================
+index.hbs
+
+  <main class="site-main">
+
+    </main>
